@@ -30,5 +30,7 @@ namespace ValidityTakeHome.Models
                     zip, city, state_long, state, phone);
             }
         }
+
+        public bool isDuplicate { get; internal set; }
     }
 }
