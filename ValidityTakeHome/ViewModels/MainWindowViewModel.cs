@@ -10,6 +10,10 @@ using Fastenshtein;
 
 namespace ValidityTakeHome.ViewModels
 {
+    // improvements:
+    // - PotentialDuplicates is a flat list - can be made into a list of lists to clarify duplicate sets
+    // - levenshtein threshold can be dynamically adjusted
+    // - more string metrics can be added to fine tune deduplication detection (for instance, Jaro-Winkler)
     public class MainWindowViewModel : INotifyPropertyChanged
     {
         private const int LEVENSHTEIN_THRESHOLD = 2;
@@ -90,9 +94,6 @@ namespace ValidityTakeHome.ViewModels
                         {
                             var primaryRecord = records[i];
 
-                            // if this is marked as a duplicate already, we don't need to check any further
-                            if (primaryRecord.isDuplicate) continue;
-
                             for (int j = i + 1; j < records.Count; j++)
                             {
                                 var secondaryRecord = records[j];
@@ -106,8 +107,11 @@ namespace ValidityTakeHome.ViewModels
                                         PotentialDuplicates.Add(primaryRecord);
                                     }
 
-                                    secondaryRecord.isDuplicate = true;
-                                    PotentialDuplicates.Add(secondaryRecord);
+                                    if (!secondaryRecord.isDuplicate)
+                                    {
+                                        secondaryRecord.isDuplicate = true;
+                                        PotentialDuplicates.Add(secondaryRecord);
+                                    }
                                 }
                             }
 
@@ -122,6 +126,13 @@ namespace ValidityTakeHome.ViewModels
             }
         }
 
+        // considerations:
+        // - which properties can reliably define a person as a duplicate? If the full name is an exact match,
+        // but the email or address is different, technically two possibilities: (1) two different people, or 
+        // (2) same person, but they moved / changed email (therefore, the older record should be removed)
+        // - if combining multiple algorithms (levenshtein + jaro-winkler) what are acceptable thresholds to
+        // detect duplicates? (for example, is it possible the levenshtein distance is very small but the jaro-winkler
+        // score claims no similarity?)
         private bool ArePotentialDuplicates(Person p1, Person p2)
         {
             var firstNamesEqual = p1.first_name.Equals(p2.first_name, System.StringComparison.OrdinalIgnoreCase);
